@@ -26,7 +26,7 @@ func (p *treePrinter) Print(dirname string) error {
 	return nil
 }
 
-func (p *treePrinter) printDir(dirname string, prefix string) error {
+func (p *treePrinter) printDir(dirname, prefix string) error {
 	fileInfos, err := p.readDir(dirname)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dir %v", dirname)
