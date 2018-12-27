@@ -13,20 +13,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-func PrintTree(w io.Writer, dirname string) error {
-	d, err := filepath.Abs(dirname)
-	if err != nil {
-		return errors.Wrapf(err, "failed to get absolute path")
-	}
-	fmt.Fprintln(w, d)
-	if err := printDir(w, d, ""); err != nil {
+type treePrinter struct {
+	w io.Writer
+	readDir func(dirname string) ([]os.FileInfo, error)
+}
+
+func (p *treePrinter) Print(dirname string) error {
+	fmt.Fprintln(p.w, dirname)
+	if err := p.printDir(dirname, ""); err != nil {
 		return err
 	}
 	return nil
 }
 
-func printDir(w io.Writer, dirname, prefix string) error {
-	fileInfos, err := ioutil.ReadDir(dirname)
+func (p *treePrinter) printDir(dirname string, prefix string) error {
+	fileInfos, err := p.readDir(dirname)
 	if err != nil {
 		return errors.Wrapf(err, "failed to read dir %v", dirname)
 	}
@@ -36,22 +37,28 @@ func printDir(w io.Writer, dirname, prefix string) error {
 		if strings.HasPrefix(fi.Name(), ".") {
 			continue
 		}
-		p := prefix
-		if i == size-1 {
-			fmt.Fprint(w, prefix, "└─── ")
-			p += "     "
+		hasNext := i != size-1
+
+		pp := prefix
+		if hasNext {
+			fmt.Fprint(p.w, prefix, "├─── ")
+			pp += "│    "
 		} else {
-			fmt.Fprint(w, prefix, "├─── ")
-			p += "│    "
+			fmt.Fprint(p.w, prefix, "└─── ")
+			pp += "     "
 		}
-		fmt.Fprintln(w, fi.Name())
+		fmt.Fprintln(p.w, fi.Name())
 		if fi.IsDir() {
-			if err := printDir(w, filepath.Join(dirname, fi.Name()), p); err != nil {
+			if err := p.printDir(filepath.Join(dirname, fi.Name()), pp); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+func PrintTree(w io.Writer, dirname string) error {
+	return (&treePrinter{w: w, readDir: ioutil.ReadDir}).Print(dirname)
 }
 
 func main() {
