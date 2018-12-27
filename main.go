@@ -34,7 +34,8 @@ func (p *treePrinter) printDir(dirname, prefix string) error {
 
 	size := len(fileInfos)
 	for i, fi := range fileInfos {
-		if strings.HasPrefix(fi.Name(), ".") {
+		name := fi.Name()
+		if strings.HasPrefix(name, ".") {
 			continue
 		}
 		hasNext := i != size-1
@@ -47,9 +48,9 @@ func (p *treePrinter) printDir(dirname, prefix string) error {
 			fmt.Fprint(p.w, prefix, "└─── ")
 			pp += "     "
 		}
-		fmt.Fprintln(p.w, fi.Name())
+		fmt.Fprintln(p.w, name)
 		if fi.IsDir() {
-			if err := p.printDir(filepath.Join(dirname, fi.Name()), pp); err != nil {
+			if err := p.printDir(filepath.Join(dirname, name), pp); err != nil {
 				return err
 			}
 		}
