@@ -19,18 +19,23 @@ type Node interface {
 }
 
 type treePrinter struct {
-	w io.Writer
+	w        io.Writer
+	maxLevel int
 }
 
 func (p *treePrinter) Print(node Node) error {
 	fmt.Fprintln(p.w, node.Name())
-	if err := p.printChildren(node, ""); err != nil {
+	if err := p.printChildren(node, "", 1); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *treePrinter) printChildren(node Node, prefix string) error {
+func (p *treePrinter) printChildren(node Node, prefix string, level int) error {
+	if level == p.maxLevel+1 {
+		return nil
+	}
+
 	children, err := node.Children()
 	if err != nil {
 		return errors.Wrapf(err, "failed to get children(node=%+v)", node)
@@ -50,7 +55,7 @@ func (p *treePrinter) printChildren(node Node, prefix string) error {
 		}
 
 		fmt.Fprintln(p.w, c.Name())
-		if err := p.printChildren(c, pp); err != nil {
+		if err := p.printChildren(c, pp, level+1); err != nil {
 			return err
 		}
 	}
@@ -88,7 +93,11 @@ func (n *FileSystemNode) Children() ([]Node, error) {
 	return children, nil
 }
 
-func PrintDirTree(w io.Writer, dirname string) error {
+type TreeOption struct {
+	MaxLevel int
+}
+
+func PrintDirTree(w io.Writer, dirname string, option TreeOption) error {
 	fi, err := os.Stat(dirname)
 	if err != nil {
 		return err
@@ -96,17 +105,32 @@ func PrintDirTree(w io.Writer, dirname string) error {
 	if !fi.IsDir() {
 		return errors.Errorf("is not a directory (path=%v)", dirname)
 	}
-	return (&treePrinter{w: w}).Print(&FileSystemNode{path: dirname, name: dirname, isDir: true})
+	printer := &treePrinter{
+		w:        w,
+		maxLevel: option.MaxLevel,
+	}
+	root := &FileSystemNode{
+		path:  dirname,
+		name:  dirname,
+		isDir: true,
+	}
+	return printer.Print(root)
 }
 
 func main() {
 	log.SetPrefix("tree: ")
 	log.SetFlags(0)
 
+	var option TreeOption
+
+	flag.IntVar(&option.MaxLevel, "L", -1, "Show files and directories up to 'num' levels of depth")
 	flag.Parse()
 
-	dir := flag.Arg(0)
-	if err := PrintDirTree(os.Stdout, dir); err != nil {
+	dir := "."
+	if flag.NArg() == 1 {
+		dir = flag.Arg(0)
+	}
+	if err := PrintDirTree(os.Stdout, dir, option); err != nil {
 		log.Fatal(err)
 	}
 }
