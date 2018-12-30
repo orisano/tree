@@ -63,9 +63,10 @@ func (p *treePrinter) printChildren(node Node, prefix string, level int) error {
 }
 
 type FileSystemNode struct {
-	path  string
-	name  string
-	isDir bool
+	path    string
+	name    string
+	isDir   bool
+	dirOnly bool
 }
 
 func (n *FileSystemNode) Name() string {
@@ -88,13 +89,17 @@ func (n *FileSystemNode) Children() ([]Node, error) {
 		if strings.HasPrefix(name, ".") {
 			continue
 		}
-		children = append(children, &FileSystemNode{path: filepath.Join(n.path, name), name: name, isDir: entry.IsDir()})
+		if n.dirOnly && !entry.IsDir() {
+			continue
+		}
+		children = append(children, &FileSystemNode{path: filepath.Join(n.path, name), name: name, isDir: entry.IsDir(), dirOnly: n.dirOnly})
 	}
 	return children, nil
 }
 
 type TreeOption struct {
-	MaxLevel int
+	MaxLevel      int
+	DirectoryOnly bool
 }
 
 func PrintDirTree(w io.Writer, dirname string, option TreeOption) error {
@@ -110,9 +115,10 @@ func PrintDirTree(w io.Writer, dirname string, option TreeOption) error {
 		maxLevel: option.MaxLevel,
 	}
 	root := &FileSystemNode{
-		path:  dirname,
-		name:  dirname,
-		isDir: true,
+		path:    dirname,
+		name:    dirname,
+		isDir:   true,
+		dirOnly: option.DirectoryOnly,
 	}
 	return printer.Print(root)
 }
@@ -124,6 +130,7 @@ func main() {
 	var option TreeOption
 
 	flag.IntVar(&option.MaxLevel, "L", -1, "Show files and directories up to 'num' levels of depth")
+	flag.BoolVar(&option.DirectoryOnly, "d", false, "List directories only")
 	flag.Parse()
 
 	dir := "."
