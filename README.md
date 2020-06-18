@@ -1,8 +1,8 @@
 # tree
-toy tree command
+A toy tree command
 
 ## Author
-Nao YONASHIRO(@orisano)
+Nao Yonashiro (@orisano)
 
 ## License
 MIT
