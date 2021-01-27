@@ -9,8 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 type Node interface {
@@ -38,7 +36,7 @@ func (p *treePrinter) printChildren(node Node, prefix string, level int) error {
 
 	children, err := node.Children()
 	if err != nil {
-		return errors.Wrapf(err, "failed to get children(node=%+v)", node)
+		return fmt.Errorf("children(node=%+v): %w", node, err)
 	}
 
 	size := len(children)
@@ -56,12 +54,13 @@ func (p *treePrinter) printChildren(node Node, prefix string, level int) error {
 
 		fmt.Fprintln(p.w, c.Name())
 		if err := p.printChildren(c, pp, level+1); err != nil {
-			return err
+			return fmt.Errorf("print children: %w", err)
 		}
 	}
 	return nil
 }
 
+0
 type FileSystemNode struct {
 	path       string
 	name       string
@@ -81,7 +80,7 @@ func (n *FileSystemNode) Children() ([]Node, error) {
 
 	entries, err := ioutil.ReadDir(n.path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read dir(path=%v)", n.path)
+		return nil, fmt.Errorf("read dir(path=%v): %w", n.path, err)
 	}
 
 	children := make([]Node, 0, len(entries))
@@ -110,10 +109,10 @@ type TreeOption struct {
 func PrintDirTree(w io.Writer, dirname string, option TreeOption) error {
 	fi, err := os.Stat(dirname)
 	if err != nil {
-		return err
+		return fmt.Errorf("stat: %w", err)
 	}
 	if !fi.IsDir() {
-		return errors.Errorf("is not a directory (path=%v)", dirname)
+		return fmt.Errorf("is not a directory (path=%v)", dirname)
 	}
 	printer := &treePrinter{
 		w:        w,
