@@ -60,7 +60,6 @@ func (p *treePrinter) printChildren(node Node, prefix string, level int) error {
 	return nil
 }
 
-0
 type FileSystemNode struct {
 	path       string
 	name       string
